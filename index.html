@@ -4,21 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snake Game 🐍</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
     <script type="module" src="main.js" defer></script>
 </head>
 <body>
     <div id="introduction">
         <h1>🐍 SNAKE GAME 🐍</h1>
+        <div class="difficulty-options">
+            <button class="diff-btn" data-diff="easy">🟩 Easy</button>
+            <button class="diff-btn selected" data-diff="medium">🟨 Medium</button>
+            <button class="diff-btn" data-diff="hard">🟥 Hard</button>
+        </div>
         <button id="startButton">Start Game</button>
     </div>
 
     <div id="gameContainer">
-        <div id="scoreDisplay">0</div>
+        <div id="scoreBoard">
+            <div id="scoreDisplay">0</div>
+            <div id="highScoreText">High Score: <span id="highScoreDisplay">0</span></div>
+        </div>
+        
+        <div id="pauseOverlay" style="display: none;">
+            <div class="pause-text">PAUSED</div>
+        </div>
         
         <canvas id="gameBoard" width="700" height="700"></canvas>
         
-        <button id="resetButton">Reset</button>
+        <div class="bottom-controls">
+            <div class="difficulty-options">
+                <button class="diff-btn" data-diff="easy">🟩 Easy</button>
+                <button class="diff-btn selected" data-diff="medium">🟨 Medium</button>
+                <button class="diff-btn" data-diff="hard">🟥 Hard</button>
+            </div>
+            <button id="stopButton">Stop</button>
+            <button id="resetButton">Reset</button>
+        </div>
         
         <!-- Mobile/Touch Controls -->
         <div id="controls">

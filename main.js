@@ -10,15 +10,44 @@ let food = {};
 let dx = 1, dy = 0;
 let direction = 'right';
 let score = 0;
+let currentDifficulty = 'medium';
+let highScore = localStorage.getItem(`snakeHighScore_${currentDifficulty}`) || localStorage.getItem('snakeHighScore') || 0;
 let gameInterval = null;
 let gameRunning = false;
 let paused = false;
+let currentSpeed = 130;
 
 const scoreDisplay = document.getElementById('scoreDisplay');
+const highScoreDisplay = document.getElementById('highScoreDisplay');
 const gameContainer = document.getElementById('gameContainer');
+const pauseOverlay = document.getElementById('pauseOverlay');
 const introduction = document.getElementById('introduction');
 const startButton = document.getElementById('startButton');
+const stopButton = document.getElementById('stopButton');
 const resetButton = document.getElementById('resetButton');
+
+const diffButtons = document.querySelectorAll('.diff-btn');
+// Set up initial selection state
+const initDiff = currentDifficulty;
+document.querySelectorAll(`.diff-btn[data-diff="${initDiff}"]`).forEach(b => b.classList.add('selected'));
+
+document.body.addEventListener('click', (e) => {
+  if (e.target.classList.contains('diff-btn')) {
+    const selectedDiff = e.target.getAttribute('data-diff');
+    
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll(`.diff-btn[data-diff="${selectedDiff}"]`).forEach(b => b.classList.add('selected'));
+    
+    currentDifficulty = selectedDiff;
+    highScore = localStorage.getItem(`snakeHighScore_${currentDifficulty}`) || localStorage.getItem('snakeHighScore') || 0;
+    
+    if (gameRunning && !paused) {
+      resetGame();
+    } else {
+      highScoreDisplay.textContent = highScore;
+    }
+  }
+});
 
 function initGame() {
   snake = [
@@ -29,7 +58,14 @@ function initGame() {
   dx = 1; dy = 0;
   direction = 'right';
   score = 0;
+  
+  if (currentDifficulty === 'easy') currentSpeed = 160;
+  else if (currentDifficulty === 'medium') currentSpeed = 130;
+  else if (currentDifficulty === 'hard') currentSpeed = 90;
+
   scoreDisplay.textContent = score;
+  highScore = localStorage.getItem(`snakeHighScore_${currentDifficulty}`) || localStorage.getItem('snakeHighScore') || 0;
+  highScoreDisplay.textContent = highScore;
   spawnFood();
   clearBoard();
   drawFood(food);
@@ -61,6 +97,29 @@ function moveSnake() {
   if (head.x === food.x && head.y === food.y) {
     score++;
     scoreDisplay.textContent = score;
+    
+    if (score > highScore) {
+      highScore = score;
+      highScoreDisplay.textContent = highScore;
+      localStorage.setItem(`snakeHighScore_${currentDifficulty}`, highScore);
+    }
+    
+    let baseSpeed = 130;
+    let minSpeed = 50;
+    let dropPer5 = 10;
+    
+    if (currentDifficulty === 'easy') { baseSpeed = 160; minSpeed = 80; dropPer5 = 5; }
+    else if (currentDifficulty === 'medium') { baseSpeed = 130; minSpeed = 50; dropPer5 = 10; }
+    else if (currentDifficulty === 'hard') { baseSpeed = 90; minSpeed = 40; dropPer5 = 15; }
+    
+    let newSpeed = Math.max(minSpeed, baseSpeed - Math.floor(score / 5) * dropPer5);
+    
+    if (newSpeed !== currentSpeed) {
+      currentSpeed = newSpeed;
+      clearInterval(gameInterval);
+      gameInterval = setInterval(gameLoop, currentSpeed);
+    }
+    
     spawnFood();
   } else {
     snake.pop();
@@ -82,7 +141,9 @@ function startGame() {
   if (gameInterval) clearInterval(gameInterval);
   gameRunning = true;
   paused = false;
-  gameInterval = setInterval(gameLoop, 130);
+  pauseOverlay.style.display = 'none';
+  stopButton.textContent = 'Stop';
+  gameInterval = setInterval(gameLoop, currentSpeed);
 }
 
 function resetGame() {
@@ -96,7 +157,7 @@ function gameOver() {
   if (!gameRunning) return;
   gameRunning = false;
   clearInterval(gameInterval);
-  drawGameOver(score);
+  drawGameOver(score, currentDifficulty);
 }
 
 function changeDirection(newDx, newDy, newDir) {
@@ -120,8 +181,15 @@ document.addEventListener('keydown', e => {
       e.preventDefault();
       if (gameRunning) {
         paused = !paused;
-        if (!paused) gameInterval = setInterval(gameLoop, 130);
-        else clearInterval(gameInterval);
+        if (!paused) {
+          gameInterval = setInterval(gameLoop, currentSpeed);
+          pauseOverlay.style.display = 'none';
+          stopButton.textContent = 'Stop';
+        } else {
+          clearInterval(gameInterval);
+          pauseOverlay.style.display = 'flex';
+          stopButton.textContent = 'Resume';
+        }
       }
       break;
   }
@@ -135,16 +203,21 @@ document.getElementById('right').addEventListener('click', () => changeDirection
 
 startButton.addEventListener('click', startGame);
 resetButton.addEventListener('click', resetGame);
+stopButton.addEventListener('click', () => {
+    if (!gameRunning) return;
+    paused = !paused;
+    if (!paused) {
+        gameInterval = setInterval(gameLoop, currentSpeed);
+        pauseOverlay.style.display = 'none';
+        stopButton.textContent = 'Stop';
+    } else {
+        clearInterval(gameInterval);
+        pauseOverlay.style.display = 'flex';
+        stopButton.textContent = 'Resume';
+    }
+});
 
-// Add touch controls to HTML (add inside #gameContainer after resetButton)
-gameContainer.insertAdjacentHTML('beforeend', `
-  <div id="controls">
-    <button class="control-btn" id="up">↑</button>
-    <button class="control-btn" id="left">←</button>
-    <button class="control-btn" id="down">↓</button>
-    <button class="control-btn" id="right">→</button>
-  </div>
-`);
+
 
 // Initial clear
 clearBoard();
